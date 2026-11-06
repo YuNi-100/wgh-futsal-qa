@@ -73,26 +73,94 @@ gateway/requirements.txt    Python 의존성
 gateway/vercel.json         별도 Vercel 조회 서버 배포 설정
 ```
 
-## 실행 및 설정
+## 처음 실행하는 방법
 
-Python 3.12 환경에서 아래 명령을 실행합니다.
+### 1. 실행 범위 선택
 
-```bash
+- **화면만 체험** — [배포된 챗봇](https://wgh-futsal-data-chat.j-saeyoun.chatgpt.site/)을 엽니다. Python 설치 없이 볼 수 있으며, 운영 자료를 조회할 때 ChatGPT 로그인 또는 열람 권한이 필요할 수 있습니다.
+- **내 PC에서 조회 서버 실행** — Git과 Python 3.12가 필요합니다. 아래 명령으로 서버를 시작하고 `/health`를 확인할 수 있습니다. 웹 대시보드 화면은 ChatGPT Sites에서 별도로 제공됩니다.
+- **자체 데이터로 조회** — 본인이 읽을 수 있는 PostgreSQL과 앱의 SQL에 맞는 `wgh` 스키마가 필요합니다. 공개 저장소에는 운영 데이터, DB 스키마 초기화 파일, DB 계정이 포함되어 있지 않습니다.
+
+### 2. 설치 및 시작
+
+저장소를 내려받고 저장소 최상위 폴더에 가상환경 `.venv`를 만듭니다. 가상환경이 이미 있다면 생성 줄을 건너뛰세요. 운영체제에 맞는 명령 한 묶음을 사용합니다.
+
+**Windows PowerShell**
+
+```powershell
+git clone https://github.com/YuNi-100/wgh-futsal-qa.git
+cd wgh-futsal-qa
+py -3.12 -m venv .venv
 cd gateway
-python -m pip install -r requirements.txt
-python -m uvicorn app:app --host 127.0.0.1 --port 8000
+..\.venv\Scripts\python.exe --version
+..\.venv\Scripts\python.exe -m pip install -r requirements.txt
+..\.venv\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 8000
 ```
 
-`GET /health`로 서버 시작을 확인합니다. 실제 자료 요청은 `POST /api/wgh/query`를 사용하며 조회 서버 전용 토큰이 필요합니다. ChatGPT Sites에 화면을 배포할 때는 해당 Sites의 비밀 설정에 조회 서버 주소와 토큰을 등록합니다.
+**macOS · Linux**
 
-| 환경 | 변수 | 용도 |
+```bash
+git clone https://github.com/YuNi-100/wgh-futsal-qa.git
+cd wgh-futsal-qa
+python3.12 -m venv .venv
+cd gateway
+../.venv/bin/python --version
+../.venv/bin/python -m pip install -r requirements.txt
+../.venv/bin/python -m uvicorn app:app --host 127.0.0.1 --port 8000
+```
+
+위 명령은 `.venv`를 활성화하지 않아도 해당 Python을 직접 사용합니다. 이미 다른 위치에 가상환경이 있다면 그 위치에 맞춰 실행 경로를 바꾸세요. 예를 들어 `gateway` 안에 만들었다면 Windows에서는 `.\.venv\Scripts\python.exe`, macOS·Linux에서는 `./.venv/bin/python`을 사용합니다.
+
+서버를 켜 둔 상태에서 [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)를 열어 `{"status":"ok"}`가 표시되는지 확인합니다. 이 경로는 서버가 시작됐는지만 확인하며 DB나 OpenAI 연결을 검사하지 않습니다. 종료하려면 실행한 터미널에서 `Ctrl+C`를 누릅니다.
+
+### 3. 실제 조회용 환경 변수
+
+| 변수 | 설정 위치 | 필요한 경우 |
 | --- | --- | --- |
-| 조회 서버 | `WGH_ANALYTICS_DATABASE_URL` | 운영 DB 읽기 전용 연결 |
-| 조회 서버, Sites | `WGH_GATEWAY_TOKEN` | 두 서버 사이 인증용 비밀 값 |
-| Sites | `WGH_GATEWAY_URL` | 조회 서버의 HTTPS 주소 |
-| 조회 서버 | `OPENAI_API_KEY` | 자유 질문 해석과 근거 답변 |
+| `WGH_ANALYTICS_DATABASE_URL` | 조회 서버 | 운영 기록 조회. 앱에 필요한 테이블과 열만 조회할 수 있는 PostgreSQL 계정을 사용합니다. |
+| `WGH_GATEWAY_TOKEN` | 조회 서버와 Sites | 조회 요청 인증. 양쪽에 동일한 임의의 비밀 값을 넣습니다. |
+| `WGH_GATEWAY_URL` | Sites | 조회 서버의 공개 HTTPS 주소. 예시는 `https://your-gateway.example`이며 뒤에 API 경로를 붙이지 않습니다. |
+| `OPENAI_API_KEY` | 조회 서버 | 자유 질문 해석과 근거 확인 모드. 조건 조회와 지원되는 정형 질문은 키 없이 사용할 수 있습니다. |
 
-별도로 근거 확인 모드를 실행할 때는 공유 가능한 `gateway/data/futsal_facts.csv`를 준비합니다. 이 앱의 사실표 열은 `사실ID,내용,기준,출처`입니다. 운영 DB 연결 정보, API 키, 운영 자료 파일은 이 공개 저장소에 포함되어 있지 않습니다.
+로컬에서는 **서버를 실행할 같은 터미널**에서 환경 변수를 먼저 설정하세요. 아래 값은 자리표시자입니다. 실제 비밀 값은 본인 환경에서만 입력하세요.
+
+```powershell
+# Windows PowerShell
+$env:WGH_ANALYTICS_DATABASE_URL = '<읽기 전용 PostgreSQL 접속 문자열>'
+$env:WGH_GATEWAY_TOKEN = '<서버 간 인증 토큰>'
+# 자유 질문 또는 근거 확인을 사용할 경우
+$env:OPENAI_API_KEY = '<본인의 OpenAI API 키>'
+```
+
+```bash
+# macOS · Linux
+export WGH_ANALYTICS_DATABASE_URL='<읽기 전용 PostgreSQL 접속 문자열>'
+export WGH_GATEWAY_TOKEN='<서버 간 인증 토큰>'
+# 자유 질문 또는 근거 확인을 사용할 경우
+export OPENAI_API_KEY='<본인의 OpenAI API 키>'
+```
+
+서버가 이미 실행 중이면 설정 후 다시 시작합니다. 배포 환경에서는 Vercel 및 Sites의 비밀 설정을 사용하세요. 코드는 운영체제의 환경 변수를 읽으므로 `.env` 파일을 만들어 두는 것만으로는 자동 적용되지 않습니다.
+
+### 4. 조회와 화면 연결 확인
+
+- **조건 조회** — `POST /api/wgh/query`에 `Authorization: Bearer <WGH_GATEWAY_TOKEN>`과 `Content-Type: application/json`을 보내고 본문에 `{"filters":{"dataset":"matches","group":"month","metric":"scored"}}`를 넣으면 월별 경기 집계를 요청할 수 있습니다.
+- **자유 질문** — 같은 API에 `{"question":"월별 득점을 비교해줘"}`를 보냅니다. AI가 요청 조건을 해석하고 서버가 실제 수치를 계산합니다.
+- **근거 확인** — 공유 가능한 사실표를 `gateway/data/futsal_facts.csv`에 넣습니다. 열 이름은 `사실ID,내용,기준,출처`입니다. 근거 확인 요청에는 `{"question":"사실표에 있는 질문","evidence":true}`를 사용합니다. 현재 API는 근거 확인 요청에도 DB 연결 변수가 설정되어 있어야 진입할 수 있습니다.
+- **웹 화면** — `sites/index.mjs`는 ChatGPT Sites용 Worker입니다. Sites에서 제공하는 로그인 환경과 HTTPS 조회 서버를 사용합니다. 로컬 조회 서버의 `127.0.0.1` 주소는 배포된 Sites에서 사용할 수 없습니다.
+
+### 자주 생기는 문제
+
+| 증상 | 확인할 것 |
+| --- | --- |
+| `python` 또는 `py -3.12`를 찾을 수 없음 | Python 3.12 설치 여부를 확인합니다. Windows에서 Python Launcher가 없다면 설치한 Python 3.12의 경로로 가상환경을 만듭니다. |
+| `requirements.txt`를 찾을 수 없음 | 현재 폴더가 `gateway`인지 확인합니다. |
+| `ModuleNotFoundError` | 패키지 설치와 서버 실행에 같은 가상환경의 Python을 사용했는지 확인합니다. |
+| `/health`는 열리는데 조회가 401 | 요청에 넣은 토큰이 조회 서버의 `WGH_GATEWAY_TOKEN`과 같은지 확인합니다. |
+| 조회가 503이거나 자료가 보이지 않음 | DB 연결 변수, PostgreSQL 읽기 권한, `wgh` 스키마를 확인합니다. 조건 조회는 되는데 자유 질문만 실패하면 OpenAI 키와 API 사용 가능 상태를 확인합니다. |
+| 포트 8000을 사용할 수 없음 | 서버 실행 명령의 포트를 8001 등으로 변경하고 같은 포트로 접속합니다. |
+
+이 프로젝트의 `gateway/requirements.txt`는 조회 서버 실행에 필요한 패키지 목록입니다. Olist 실습에서 다뤘던 학습 완료 `.pkl` 파일을 읽는 단계는 없습니다.
 
 ## 검증과 한계
 
