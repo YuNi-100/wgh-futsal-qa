@@ -1,0 +1,6 @@
+.env*
+.vercel/
+.openai/
+__pycache__/
+.venv/
+gateway/data/
