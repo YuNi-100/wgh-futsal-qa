@@ -42,13 +42,13 @@
 ## 데이터가 답과 차트가 되기까지
 
 ```mermaid
-flowchart LR
-    U[사용자 질문 또는 조건 선택] --> S[ChatGPT Sites]
-    S -->|인증된 HTTPS 요청| G[FastAPI 조회 서버]
-    G --> Q[질문을 조회 조건으로 변환]
-    Q --> D[(Supabase PostgreSQL)]
-    D --> P[Python으로 필터링 및 집계]
-    P --> T[답변 · 원본 기록 · 차트 · CSV]
+flowchart TB
+    U["사용자 질문<br/>또는 조건 선택"] --> S["ChatGPT<br/>Sites"]
+    S -->|인증된 HTTPS 요청| G["FastAPI<br/>조회 서버"]
+    G --> Q["질문을 조회<br/>조건으로 변환"]
+    Q --> D[("Supabase<br/>PostgreSQL")]
+    D --> P["Python으로<br/>필터링 및 집계"]
+    P --> T["답변 · 원본 기록<br/>차트 · CSV"]
 ```
 
 | 구성 요소 | 사용 기술과 역할 |
@@ -69,6 +69,7 @@ gateway/app.py               FastAPI 진입점, 인증과 응답 구성
 gateway/analysis_core.py     질문 해석, 필터 및 집계
 gateway/read_wgh_db.py       허용된 자료별 읽기 전용 SQL
 gateway/rag.py               사실표 로딩, 검색 및 인용 확인
+gateway/data/                공개 근거 사실표와 검증용 CSV 사본
 gateway/requirements.txt    Python 의존성
 gateway/vercel.json         별도 Vercel 조회 서버 배포 설정
 ```
@@ -79,7 +80,7 @@ gateway/vercel.json         별도 Vercel 조회 서버 배포 설정
 
 - **화면만 체험** — [배포된 챗봇](https://wgh-futsal-data-chat.j-saeyoun.chatgpt.site/)을 엽니다. Python 설치 없이 볼 수 있으며, 운영 자료를 조회할 때 ChatGPT 로그인 또는 열람 권한이 필요할 수 있습니다.
 - **내 PC에서 조회 서버 실행** — Git과 Python 3.12가 필요합니다. 아래 명령으로 서버를 시작하고 `/health`를 확인할 수 있습니다. 웹 대시보드 화면은 ChatGPT Sites에서 별도로 제공됩니다.
-- **자체 데이터로 조회** — 본인이 읽을 수 있는 PostgreSQL과 앱의 SQL에 맞는 `wgh` 스키마가 필요합니다. 공개 저장소에는 운영 데이터, DB 스키마 초기화 파일, DB 계정이 포함되어 있지 않습니다.
+- **자체 데이터로 조회** — 본인이 읽을 수 있는 PostgreSQL과 앱의 SQL에 맞는 `wgh` 스키마가 필요합니다. `gateway/data/`에는 검토용 CSV 사본과 재구성한 사실표가 포함됩니다. 운영 DB 전체, DB 스키마 초기화 파일, DB 계정은 포함하지 않습니다.
 
 ### 2. 설치 및 시작
 
@@ -146,7 +147,7 @@ export OPENAI_API_KEY='<본인의 OpenAI API 키>'
 
 - **조건 조회** — `POST /api/wgh/query`에 `Authorization: Bearer <WGH_GATEWAY_TOKEN>`과 `Content-Type: application/json`을 보내고 본문에 `{"filters":{"dataset":"matches","group":"month","metric":"scored"}}`를 넣으면 월별 경기 집계를 요청할 수 있습니다.
 - **자유 질문** — 같은 API에 `{"question":"월별 득점을 비교해줘"}`를 보냅니다. AI가 요청 조건을 해석하고 서버가 실제 수치를 계산합니다.
-- **근거 확인** — 공유 가능한 사실표를 `gateway/data/futsal_facts.csv`에 넣습니다. 열 이름은 `사실ID,내용,기준,출처`입니다. 근거 확인 요청에는 `{"question":"사실표에 있는 질문","evidence":true}`를 사용합니다. 현재 API는 근거 확인 요청에도 DB 연결 변수가 설정되어 있어야 진입할 수 있습니다.
+- **근거 확인** — 포함된 [사실표](gateway/data/futsal_facts.csv)와 [데이터 설명](gateway/data/README.md)을 확인합니다. 열 이름은 `사실ID,내용,기준,출처`입니다. 근거 확인 요청에는 `{"question":"사실표에 있는 질문","evidence":true}`를 사용합니다. 현재 API는 근거 확인 요청에도 DB 연결 변수가 설정되어 있어야 진입할 수 있습니다.
 - **웹 화면** — `sites/index.mjs`는 ChatGPT Sites용 Worker입니다. Sites에서 제공하는 로그인 환경과 HTTPS 조회 서버를 사용합니다. 로컬 조회 서버의 `127.0.0.1` 주소는 배포된 Sites에서 사용할 수 없습니다.
 
 ### 자주 생기는 문제

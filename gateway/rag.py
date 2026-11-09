@@ -12,6 +12,7 @@ DATA_DIR = Path(__file__).parent / "data"
 NOT_FOUND = "확인 불가"
 
 def load_facts():
+    """근거 확인 요청에서 build_store()가 호출하는 CSV 로더."""
     return pd.read_csv(DATA_DIR / "futsal_facts.csv", keep_default_na=False)
 
 @lru_cache(maxsize=4)

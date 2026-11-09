@@ -3,4 +3,3 @@
 .openai/
 __pycache__/
 .venv/
-gateway/data/
